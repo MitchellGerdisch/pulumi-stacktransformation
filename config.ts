@@ -1,25 +1,17 @@
 import * as pulumi from "@pulumi/pulumi";
-import {StackTags} from "./stack-tags";
-import {isTaggable} from "./aws-resource-with-tags";
+
+export type DmsTaskMigrationType = 'full-load' | 'cdc' | 'full-load-and-cdc'
+
+// Workaround for the issue https://github.com/pulumi/pulumi/issues/13561
+
+export interface ProjectConfig {
+    vpcCidrBlock: string;
+    subnetCidrBlock: string;
+}
 
 console.log("Running initial setup...");
 
 const config = new pulumi.Config();
-pulumi.runtime.registerStackTransformation(args => {
-    const t = args.type
-    const m = t.split(":")[0]
-    if (isTaggable(t, m)) {
-        console.log(`Auto applying tags for ${t}`);
-        if (m == 'aws') {
-            args.props["tags"] = {...args.props["tags"], ...StackTags.getTags()};
-        }
-        if (m == 'aws-native') {
-            const tagsArray = Object.entries(StackTags.getTags()).map(([Key, Value]) => ({
-                key: Key, value: Value
-            }));
-            args.props["tags"] = [...args.props["tags"] || [], ...tagsArray]
-        }
-        return {props: args.props, opts: args.opts};
-    }
-    return undefined;
-});
+
+// Return a dictionary with configuration values
+export const autoConfig = config.requireObject<ProjectConfig>(pulumi.getProject())
